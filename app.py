@@ -3,8 +3,10 @@
 from datetime import date, timedelta
 
 import ee
+import os
+os.environ["USE_FOLIUM"] = "1"
+import geemap
 import folium
-import geemap.foliumap as geemap
 import streamlit as st
 
 
@@ -14,14 +16,20 @@ st.set_page_config(
 )
 
 
-def initialize_earth_engine():
+def initialize_earth_engine(project_id=""):
     try:
-        ee.Initialize()
+        if project_id:
+            ee.Initialize(project=project_id)
+        else:
+            ee.Initialize()
         return True
     except Exception:
         try:
             ee.Authenticate()
-            ee.Initialize()
+            if project_id:
+                ee.Initialize(project=project_id)
+            else:
+                ee.Initialize()
             return True
         except Exception as exc:
             st.error(f"Earth Engine initialization failed: {exc}")
@@ -52,9 +60,15 @@ def get_ndvi(image):
 st.title("🌍 AI-Based Deforestation Monitoring System")
 st.markdown("Real-time satellite analysis using Google Earth Engine")
 
-ee_ready = initialize_earth_engine()
-
 st.sidebar.header("Controls")
+
+project_id = st.sidebar.text_input(
+    "GCP Project ID (Required for new Earth Engine accounts)", 
+    value="",
+    help="Find or create a project at https://earthengine.google.com/"
+)
+
+ee_ready = initialize_earth_engine(project_id)
 
 region = st.sidebar.selectbox(
     "Select Region",
