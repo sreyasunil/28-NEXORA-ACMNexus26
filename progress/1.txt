@@ -1,0 +1,1 @@
+﻿Created Streamlit UI for deforestation dashboard with mock map, metrics, alerts, and trend chart.
