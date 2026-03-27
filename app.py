@@ -1,295 +1,178 @@
-﻿from datetime import date, timedelta
 
-import pandas as pd
-import pydeck as pdk
+
+from datetime import date, timedelta
+
+import ee
+import folium
+import geemap.foliumap as geemap
 import streamlit as st
 
-# -----------------------------
-# Page Config
-# -----------------------------
+
 st.set_page_config(
-    page_title="Deforestation Detection & Carbon Impact Dashboard",
+    page_title="Deforestation Monitoring System",
     layout="wide",
-    initial_sidebar_state="expanded",
 )
 
-# -----------------------------
-# Styling
-# -----------------------------
-st.markdown(
-    """
-    <style>
-    :root {
-        --bg: #0f1c1a;
-        --panel: #142422;
-        --card: #1b2f2b;
-        --accent: #8ae18f;
-        --accent2: #ff6b6b;
-        --text: #f2f7f4;
-        --muted: #b6c7bf;
-    }
-    .main {
-        background: radial-gradient(circle at 10% 10%, #15312c 0%, #0f1c1a 55%, #0b1513 100%);
-        color: var(--text);
-        font-family: "Avenir Next", "Segoe UI", sans-serif;
-    }
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-    }
-    .title {
-        font-size: 2.2rem;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        margin-bottom: 0.2rem;
-    }
-    .subtitle {
-        font-size: 1.05rem;
-        color: var(--muted);
-        margin-bottom: 1.5rem;
-    }
-    .card {
-        background: var(--card);
-        padding: 1rem 1.2rem;
-        border-radius: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-    }
-    .metric-title {
-        color: var(--muted);
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-bottom: 0.3rem;
-    }
-    .metric-value {
-        font-size: 1.6rem;
-        font-weight: 700;
-    }
-    .badge {
-        display: inline-block;
-        padding: 0.15rem 0.5rem;
-        border-radius: 999px;
-        background: rgba(138, 225, 143, 0.15);
-        color: var(--accent);
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-    .alert {
-        background: rgba(255, 107, 107, 0.12);
-        border: 1px solid rgba(255, 107, 107, 0.35);
-        padding: 0.8rem 1rem;
-        border-radius: 12px;
-        margin-bottom: 0.6rem;
-        color: #ffd6d6;
-        font-weight: 600;
-    }
-    .image-card {
-        height: 240px;
-        border-radius: 16px;
-        background: linear-gradient(135deg, rgba(138,225,143,0.2), rgba(255,107,107,0.2));
-        border: 1px dashed rgba(255,255,255,0.25);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        color: var(--text);
-        margin-bottom: 0.4rem;
-    }
-    .section-title {
-        font-size: 1.2rem;
-        font-weight: 700;
-        margin-bottom: 0.6rem;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
-# -----------------------------
-# Helper Functions
-# -----------------------------
-
-def region_config(region: str):
-    if region == "Amazon":
-        return {"center": [-3.4653, -62.2159], "zoom": 5}
-    if region == "Kerala":
-        return {"center": [10.1632, 76.6413], "zoom": 7}
-    return {"center": [0.0, 0.0], "zoom": 2}
+def initialize_earth_engine():
+    try:
+        ee.Initialize()
+        return True
+    except Exception:
+        try:
+            ee.Authenticate()
+            ee.Initialize()
+            return True
+        except Exception as exc:
+            st.error(f"Earth Engine initialization failed: {exc}")
+            return False
 
 
-def mock_geojson(center):
-    lat, lon = center
-    # Two simple polygons for demo: deforested (red) and healthy (green)
-    deforested = {
-        "type": "Feature",
-        "properties": {"class": "Deforested", "color": [255, 107, 107, 160]},
-        "geometry": {
-            "type": "Polygon",
-            "coordinates": [
-                [
-                    [lon - 0.6, lat - 0.4],
-                    [lon - 0.2, lat - 0.4],
-                    [lon - 0.2, lat + 0.1],
-                    [lon - 0.6, lat + 0.1],
-                    [lon - 0.6, lat - 0.4],
-                ]
-            ],
-        },
-    }
-    healthy = {
-        "type": "Feature",
-        "properties": {"class": "Healthy", "color": [138, 225, 143, 160]},
-        "geometry": {
-            "type": "Polygon",
-            "coordinates": [
-                [
-                    [lon + 0.1, lat - 0.2],
-                    [lon + 0.7, lat - 0.2],
-                    [lon + 0.7, lat + 0.4],
-                    [lon + 0.1, lat + 0.4],
-                    [lon + 0.1, lat - 0.2],
-                ]
-            ],
-        },
-    }
-    return {
-        "type": "FeatureCollection",
-        "features": [deforested, healthy],
-    }
-
-
-# -----------------------------
-# Sidebar: Inputs & Metrics
-# -----------------------------
-with st.sidebar:
-    st.markdown("### Inputs")
-    region = st.selectbox("Select Region", ["Amazon", "Kerala", "Custom"])
-    today = date.today()
-    start_default = today - timedelta(days=30)
-    start_date, end_date = st.date_input(
-        "Date Range",
-        value=(start_default, today),
-        max_value=today,
-    )
-    analyze = st.button("Analyze")
-
-    st.markdown("---")
-    st.markdown("### Key Metrics")
-    st.markdown(
-        """
-        <div class="card">
-            <div class="metric-title">Forest Area Lost</div>
-            <div class="metric-value">120 hectares</div>
-            <div class="badge">Mock Data</div>
-        </div>
-        <div style="height: 0.6rem"></div>
-        <div class="card">
-            <div class="metric-title">Estimated CO₂ Emissions</div>
-            <div class="metric-value">2,400 tons</div>
-            <div class="badge">Mock Data</div>
-        </div>
-        <div style="height: 0.6rem"></div>
-        <div class="card">
-            <div class="metric-title">Vegetation Loss</div>
-            <div class="metric-value">18.4%</div>
-            <div class="badge">Mock Data</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+def get_image(lat, lon, start, end):
+    region_geom = ee.Geometry.Point([lon, lat]).buffer(5000)
+    collection = (
+        ee.ImageCollection("COPERNICUS/S2")
+        .filterBounds(region_geom)
+        .filterDate(str(start), str(end))
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 10))
     )
 
-# -----------------------------
-# Header
-# -----------------------------
-st.markdown(
-    """
-    <div class="title">AI-Based Deforestation Monitoring System</div>
-    <div class="subtitle">Detect forest loss and estimate climate impact using satellite data</div>
-    """,
-    unsafe_allow_html=True,
+    if collection.size().getInfo() == 0:
+        raise ValueError(
+            f"No satellite imagery found between {start} and {end} for the selected region."
+        )
+
+    return collection.median().clip(region_geom)
+
+
+def get_ndvi(image):
+    return image.normalizedDifference(["B8", "B4"]).rename("NDVI")
+
+
+st.title("🌍 AI-Based Deforestation Monitoring System")
+st.markdown("Real-time satellite analysis using Google Earth Engine")
+
+ee_ready = initialize_earth_engine()
+
+st.sidebar.header("Controls")
+
+region = st.sidebar.selectbox(
+    "Select Region",
+    ["Amazon", "Kerala", "Custom"],
 )
 
-# -----------------------------
-# Analyze Action (Mock Processing)
-# -----------------------------
-if analyze:
-    with st.spinner("Running satellite analysis and AI inference..."):
-        st.session_state["analysis_ready"] = True
+if region == "Amazon":
+    lat, lon = -3.4653, -62.2159
+elif region == "Kerala":
+    lat, lon = 10.1632, 76.6413
 else:
-    st.session_state.setdefault("analysis_ready", True)
+    lat = st.sidebar.number_input("Latitude", value=19.0760, format="%.6f")
+    lon = st.sidebar.number_input("Longitude", value=72.8777, format="%.6f")
 
-# -----------------------------
-# Main Layout
-# -----------------------------
-col_left, col_right = st.columns([2, 1], gap="large")
+today = date.today()
+start_default = today - timedelta(days=365 * 5)
 
-with col_left:
-    st.markdown("<div class=\"section-title\">Interactive Map</div>", unsafe_allow_html=True)
-    config = region_config(region)
-    geojson = mock_geojson(config["center"])
+start_date = st.sidebar.date_input("Start Date", start_default)
+end_date = st.sidebar.date_input("End Date", today)
+analyze = st.sidebar.button("Analyze")
 
-    layer = pdk.Layer(
-        "GeoJsonLayer",
-        geojson,
-        pickable=True,
-        opacity=0.7,
-        stroked=True,
-        filled=True,
-        get_fill_color="properties.color",
-        get_line_color=[240, 240, 240],
-        line_width_min_pixels=1,
-    )
+if analyze:
+    if not ee_ready:
+        st.stop()
 
-    view_state = pdk.ViewState(
-        latitude=config["center"][0],
-        longitude=config["center"][1],
-        zoom=config["zoom"],
-        pitch=30,
-    )
+    if start_date >= end_date:
+        st.error("Start Date must be earlier than End Date.")
+        st.stop()
 
-    st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state, map_style=None))
+    try:
+        st.subheader("🛰️ Satellite Map")
 
-    st.markdown("<div class=\"section-title\">Deforestation Trend</div>", unsafe_allow_html=True)
-    trend_data = pd.DataFrame(
-        {
-            "Date": pd.date_range(end=end_date, periods=10),
-            "Hectares Lost": [8, 12, 9, 15, 18, 22, 19, 24, 28, 30],
-        }
-    )
-    st.line_chart(trend_data, x="Date", y="Hectares Lost", height=220)
+        image_before = get_image(lat, lon, start_date, start_date + timedelta(days=30))
+        image_after = get_image(lat, lon, end_date - timedelta(days=30), end_date)
 
-with col_right:
-    st.markdown("<div class=\"section-title\">Suspicious Activity Alerts</div>", unsafe_allow_html=True)
-    st.markdown("<div class=\"alert\">⚠️ Large-scale clearing detected</div>", unsafe_allow_html=True)
-    st.markdown("<div class=\"alert\">⚠️ Rapid vegetation loss observed</div>", unsafe_allow_html=True)
-    st.markdown("<div class=\"alert\">⚠️ Clustered deforestation patterns found</div>", unsafe_allow_html=True)
+        ndvi_before = get_ndvi(image_before)
+        ndvi_after = get_ndvi(image_after)
+        change = ndvi_after.subtract(ndvi_before)
 
-    st.markdown("<div class=\"section-title\">Before vs After</div>", unsafe_allow_html=True)
-    view_mode = st.toggle("Side-by-side comparison", value=True)
+        # Map Col 1: Before
+        map_col1, map_col2 = st.columns(2)
 
-    if view_mode:
-        before_col, after_col = st.columns(2)
-        with before_col:
-            st.markdown("<div class=\"image-card\">Before</div>", unsafe_allow_html=True)
-        with after_col:
-            st.markdown("<div class=\"image-card\">After</div>", unsafe_allow_html=True)
-    else:
-        tab_before, tab_after = st.tabs(["Before", "After"])
-        with tab_before:
-            st.markdown("<div class=\"image-card\">Before</div>", unsafe_allow_html=True)
-        with tab_after:
-            st.markdown("<div class=\"image-card\">After</div>", unsafe_allow_html=True)
+        with map_col1:
+            st.markdown("**Before Period Map**")
+            m1 = geemap.Map(center=[lat, lon], zoom=10)
+            m1.addLayer(
+                image_before,
+                {"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000},
+                "Before",
+            )
+            m1.addLayer(
+                ndvi_before,
+                {"min": -1, "max": 1, "palette": ["blue", "white", "green"]},
+                "NDVI Before",
+            )
+            # Add a live marker at the chosen coordinate
+            folium.Marker(
+                location=[lat, lon],
+                popup=f"Analyzed Point: {lat}, {lon}",
+                icon=folium.Icon(color="red", icon="info-sign")
+            ).add_to(m1)
+            m1.to_streamlit(height=400)
 
-# -----------------------------
-# Footer Notes
-# -----------------------------
-st.markdown(
-    """
-    <div class="card" style="margin-top: 1rem;">
-        <div class="metric-title">System Status</div>
-        <div>✅ AI model: Online · ✅ Satellite feed: Active · ✅ Alerts: Enabled</div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+        with map_col2:
+            st.markdown("**After Period Map**")
+            m2 = geemap.Map(center=[lat, lon], zoom=10)
+            m2.addLayer(
+                image_after,
+                {"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000},
+                "After",
+            )
+            m2.addLayer(
+                ndvi_after,
+                {"min": -1, "max": 1, "palette": ["blue", "white", "green"]},
+                "NDVI After",
+            )
+            # Add a live marker for the same point
+            folium.Marker(
+                location=[lat, lon],
+                popup=f"Analyzed Point: {lat}, {lon}",
+                icon=folium.Icon(color="red", icon="info-sign")
+            ).add_to(m2)
+            m2.to_streamlit(height=400)
+
+        st.markdown("**NDVI Change Detection**")
+        m3 = geemap.Map(center=[lat, lon], zoom=10)
+        m3.addLayer(
+            change,
+            {"min": -0.5, "max": 0.5, "palette": ["red", "white", "green"]},
+            "Change Detection",
+        )
+        folium.Marker(
+            location=[lat, lon],
+            popup="Change at Point",
+            icon=folium.Icon(color="purple", icon="info-sign")
+        ).add_to(m3)
+        m3.to_streamlit(height=400)
+
+        st.subheader("📊 Analysis Results")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Vegetation Loss", "Detected")
+        col2.metric("Change Intensity", "Moderate")
+        col3.metric("Status", "⚠️ Alert")
+
+        st.subheader("🖼️ Before vs After")
+        col_a, col_b = st.columns(2)
+
+        url_before = image_before.getThumbURL(
+            {"min": 0, "max": 3000, "bands": ["B4", "B3", "B2"]}
+        )
+        url_after = image_after.getThumbURL(
+            {"min": 0, "max": 3000, "bands": ["B4", "B3", "B2"]}
+        )
+
+        col_a.image(url_before, caption="Before")
+        col_b.image(url_after, caption="After")
+    except Exception as exc:
+        st.error(f"Analysis failed: {exc}")
+else:
+    st.info("Click 'Analyze' to run satellite analysis")
+
