@@ -1,0 +1,3 @@
+PROGRESS PROOF:
+- Implemented an elegant UX fix that catches users trying to analyze Earth Engine layers without providing a GCP Project ID.
+- Displays a prominent `st.warning()` block with specific instructional steps that natively blocks the execution instead of crashing the Streamlit app.

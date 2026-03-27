@@ -1,0 +1,5 @@
+PROGRESS PROOF:
+- Diagnosed authentication crashing issue returning "ee.Initialize: no project found"
+- Refactored Earth Engine init function to gracefully handle Google Cloud Project ID params
+- Added a Streamlit text-input directly in the sidebar for users to enter their unique ID securely and dynamically.
+- The workflow now accurately initializes GE API upon valid Project ID input.

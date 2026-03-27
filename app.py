@@ -1,4 +1,4 @@
-﻿from datetime import date, timedelta
+from datetime import date, timedelta
 from dataclasses import dataclass
 from math import radians, sin, cos, atan2, sqrt
 
