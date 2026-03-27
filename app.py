@@ -68,8 +68,6 @@ project_id = st.sidebar.text_input(
     help="Find or create a project at https://earthengine.google.com/"
 )
 
-ee_ready = initialize_earth_engine(project_id)
-
 region = st.sidebar.selectbox(
     "Select Region",
     ["Amazon", "Kerala", "Custom"],
@@ -91,6 +89,7 @@ end_date = st.sidebar.date_input("End Date", today)
 analyze = st.sidebar.button("Analyze")
 
 if analyze:
+    ee_ready = initialize_earth_engine(project_id)
     if not ee_ready:
         st.stop()
 

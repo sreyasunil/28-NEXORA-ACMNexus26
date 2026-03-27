@@ -1,0 +1,3 @@
+PROGRESS PROOF:
+- Fixed a UX flaw where `ee.Initialize()` crashed the Streamlit app on startup by moving the Earth Engine API call.
+- The initialization `st.error` no longer displays prematurely; it waits for the 'Analyze' button click allowing the user to correctly input their GCP ID natively first.
