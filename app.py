@@ -89,7 +89,20 @@ end_date = st.sidebar.date_input("End Date", today)
 analyze = st.sidebar.button("Analyze")
 
 if analyze:
-    ee_ready = initialize_earth_engine(project_id)
+    if not project_id.strip():
+        st.warning(
+            "⚠️ **GCP Project ID Required!**\n\n"
+            "Google Earth Engine now explicitly requires a valid Google Cloud Project to authenticate.\n\n"
+            "**How to get one:**\n"
+            "1. Go to [code.earthengine.google.com/register](https://code.earthengine.google.com/register)\n"
+            "2. Register your account and create a free non-commercial Cloud Project.\n"
+            "3. Copy the new 'Project ID' string (e.g., `ee-johndoe`).\n"
+            "4. Paste it into the 'GCP Project ID' box in the sidebar on the left.\n"
+            "5. Click Analyze again!"
+        )
+        st.stop()
+
+    ee_ready = initialize_earth_engine(project_id.strip())
     if not ee_ready:
         st.stop()
 
