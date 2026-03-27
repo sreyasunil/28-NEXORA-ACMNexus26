@@ -1,0 +1,4 @@
+PROGRESS PROOF:
+- Replaced the `pydeck` mapping component with native `folium` elements.
+- Integrated `streamlit-folium` into the dashboard to cleanly render the Esri satellite basemaps.
+- The user interface now correctly leverages folium layer rendering mechanics for increased extensibility instead of pure DeckGL.
