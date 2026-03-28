@@ -1,14 +1,16 @@
-<<<<<<< HEAD
-﻿from datetime import date, timedelta
-=======
 from datetime import date, timedelta
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
 from dataclasses import dataclass
 from math import radians, sin, cos, atan2, sqrt
 
 import pandas as pd
-import pydeck as pdk
+import folium
+from streamlit_folium import st_folium
 import streamlit as st
+import io
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 
 # -----------------------------
 # Page Config
@@ -34,13 +36,26 @@ st.markdown(
         --text: #f2f7f4;
         --muted: #b6c7bf;
     }
-    .main {
-        background: radial-gradient(circle at 10% 10%, #16252b 0%, #0f1b20 55%, #0b1418 100%);
-        color: var(--text);
-        font-family: "Avenir Next", "Segoe UI", sans-serif;
+    /* Global App Background Override for Streamlit Native */
+    [data-testid="stAppViewContainer"], [data-testid="stApp"] {
+        background: radial-gradient(circle at 10% 10%, #16252b 0%, #0f1b20 55%, #0b1418 100%) !important;
+        color: var(--text) !important;
+        font-family: "Avenir Next", "Segoe UI", sans-serif !important;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #121e24 !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        display: none !important;
     }
     .block-container {
-        padding-top: 2rem;
+        padding-top: 2rem !important;
+        max-width: 95% !important;
+    }
+    
+    .main {
         padding-bottom: 2rem;
     }
     .title {
@@ -54,24 +69,10 @@ st.markdown(
         color: var(--muted);
         margin-bottom: 1.5rem;
     }
-<<<<<<< HEAD
     .panel {
         background: linear-gradient(180deg, rgba(22, 34, 41, 0.95), rgba(16, 24, 29, 0.95));
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 14px;
-=======
-    .card {
-        background: linear-gradient(180deg, rgba(30, 44, 52, 0.92), rgba(20, 30, 36, 0.92));
-        padding: 1rem 1.2rem;
-        border-radius: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-    }
-    .panel {
-        background: linear-gradient(180deg, rgba(22, 34, 41, 0.95), rgba(16, 24, 29, 0.95));
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 14px;
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
         padding: 0.8rem 1rem 1rem;
         margin-bottom: 0.8rem;
         box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
@@ -81,7 +82,6 @@ st.markdown(
         font-weight: 700;
         color: #f5f7f8;
         margin-bottom: 0.6rem;
-<<<<<<< HEAD
     }
     .card {
         background: linear-gradient(180deg, rgba(30, 44, 52, 0.92), rgba(20, 30, 36, 0.92));
@@ -89,8 +89,6 @@ st.markdown(
         border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-=======
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
     }
     .metric-title {
         color: var(--muted);
@@ -111,13 +109,10 @@ st.markdown(
         color: var(--accent);
         font-size: 0.7rem;
         font-weight: 600;
+        margin-left: 0.4rem;
     }
     .alert {
-<<<<<<< HEAD
         padding: 0.75rem 0.9rem;
-=======
-        padding: 0.8rem 1rem;
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
         border-radius: 12px;
         margin-bottom: 0.6rem;
         color: #f8f2f2;
@@ -135,29 +130,66 @@ st.markdown(
         background: linear-gradient(120deg, rgba(76, 175, 80, 0.18), rgba(33, 99, 45, 0.25));
         border: 1px solid rgba(76, 175, 80, 0.45);
     }
-    .image-card {
-        height: 210px;
-        border-radius: 16px;
-        background: linear-gradient(135deg, rgba(138,225,143,0.2), rgba(255,107,107,0.2));
-        border: 1px dashed rgba(255,255,255,0.25);
+    .intervention-card {
+        flex: 1;
+        background: linear-gradient(180deg, rgba(38, 70, 53, 0.9), rgba(22, 43, 33, 0.9));
+        border: 1px solid rgba(138, 225, 143, 0.3);
+        border-radius: 8px;
+        padding: 0.6rem 0.4rem;
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
         display: flex;
         align-items: center;
         justify-content: center;
+        color: #f2f7f4;
+    }
+    .intervention-card:hover {
+        background: linear-gradient(180deg, rgba(48, 85, 65, 0.9), rgba(28, 53, 41, 0.9));
+        border-color: rgba(138, 225, 143, 0.8);
+        transform: translateY(-2px);
+    }
+    .overlay-label {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(30, 44, 52, 0.85);
+        padding: 0.2rem 1.2rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
         font-weight: 700;
-        color: var(--text);
-        margin-bottom: 0.4rem;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255,255,255,0.15);
+        z-index: 10;
+        pointer-events: none;
+        color: #fff;
     }
-    .media-img img {
+    .app-footer {
+        position: fixed;
+        bottom: 0px;
+        left: 0;
+        width: 100%;
+        padding: 1rem;
+        text-align: center;
+        font-weight: 600;
+        color: #a1b8ae;
+        background: linear-gradient(to top, rgba(16, 28, 26, 1) 0%, rgba(16, 28, 26, 0.8) 40%, transparent 100%);
+        z-index: 100;
+    }
+    /* Wrap native Streamlit containers to look like panels */
+    [data-testid="stArrowVegaLiteChart"] {
+        background: linear-gradient(180deg, rgba(22, 34, 41, 0.95), rgba(16, 24, 29, 0.95));
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 14px;
-        border: 1px solid rgba(255,255,255,0.08);
-        box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+        padding: 1rem;
+        box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
+        margin-bottom: 1rem;
     }
-    .input-label {
-        font-size: 0.78rem;
-        color: var(--muted);
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        margin-bottom: 0.2rem;
+    .css-1544g2n {
+        padding-bottom: 5rem;
     }
     </style>
     """,
@@ -189,36 +221,42 @@ def region_config(region: str) -> dict:
     return {"center": [0.0, 0.0], "zoom": 2}
 
 
-def mock_geojson(center: list[float]) -> dict:
+def mock_geojson(center: list[float], region: str) -> dict:
+    import random
     lat, lon = center
+    
+    # Dynamic generation based on region
+    def_offset = 0.5 if region == "Amazon" else 0.1
+    hel_offset = 0.6 if region == "Amazon" else 0.2
+    
     deforested = {
         "type": "Feature",
-        "properties": {"class": "Deforested", "color": [255, 107, 107, 160]},
+        "properties": {"class": "Deforested", "color": [255, 107, 107, 180]},
         "geometry": {
             "type": "Polygon",
             "coordinates": [
                 [
-                    [lon - 0.6, lat - 0.4],
-                    [lon - 0.2, lat - 0.4],
-                    [lon - 0.2, lat + 0.1],
-                    [lon - 0.6, lat + 0.1],
-                    [lon - 0.6, lat - 0.4],
+                    [lon - def_offset, lat - def_offset/2],
+                    [lon - def_offset/3, lat - def_offset/2],
+                    [lon - def_offset/3, lat + def_offset/4],
+                    [lon - def_offset, lat + def_offset/4],
+                    [lon - def_offset, lat - def_offset/2],
                 ]
             ],
         },
     }
     healthy = {
         "type": "Feature",
-        "properties": {"class": "Healthy", "color": [138, 225, 143, 160]},
+        "properties": {"class": "Healthy", "color": [138, 225, 143, 140]},
         "geometry": {
             "type": "Polygon",
             "coordinates": [
                 [
-                    [lon + 0.1, lat - 0.2],
-                    [lon + 0.7, lat - 0.2],
-                    [lon + 0.7, lat + 0.4],
-                    [lon + 0.1, lat + 0.4],
-                    [lon + 0.1, lat - 0.2],
+                    [lon + 0.1, lat - hel_offset/2],
+                    [lon + hel_offset, lat - hel_offset/2],
+                    [lon + hel_offset, lat + hel_offset],
+                    [lon + 0.1, lat + hel_offset],
+                    [lon + 0.1, lat - hel_offset/2],
                 ]
             ],
         },
@@ -226,20 +264,21 @@ def mock_geojson(center: list[float]) -> dict:
     return {"type": "FeatureCollection", "features": [deforested, healthy]}
 
 
-def mock_protected_zones(center: list[float]) -> dict:
+def mock_protected_zones(center: list[float], region: str) -> dict:
     lat, lon = center
+    offset = 0.8 if region == "Amazon" else 0.3
     protected = {
         "type": "Feature",
-        "properties": {"class": "Protected", "color": [86, 180, 255, 140]},
+        "properties": {"class": "Protected", "color": [86, 180, 255, 120]},
         "geometry": {
             "type": "Polygon",
             "coordinates": [
                 [
-                    [lon - 1.0, lat + 0.2],
-                    [lon - 0.2, lat + 0.2],
-                    [lon - 0.2, lat + 0.8],
-                    [lon - 1.0, lat + 0.8],
-                    [lon - 1.0, lat + 0.2],
+                    [lon - offset, lat + offset/4],
+                    [lon - offset/4, lat + offset/4],
+                    [lon - offset/4, lat + offset],
+                    [lon - offset, lat + offset],
+                    [lon - offset, lat + offset/4],
                 ]
             ],
         },
@@ -256,51 +295,90 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return radius_km * c
 
 
-def mock_metrics() -> dict:
+def mock_metrics(region: str, days: int) -> dict:
+    import random
+    
+    if region == "Amazon":
+        base_area = 1250
+        base_co2 = 780000
+    elif region == "Kerala":
+        base_area = 340
+        base_co2 = 125000
+    else:
+        base_area = 500
+        base_co2 = 250000
+    
+    factor = max(1, days) / 30.0
+    area = int(base_area * factor + random.randint(-50, 50))
+    co2 = int(base_co2 * factor + random.randint(-10000, 10000))
+    veg = int(area * 6.8)
+    
     return {
-<<<<<<< HEAD
-        "area_lost": "1,250 ha",
-        "co2": "780,000 tons",
-        "veg_loss": "8,500 MT",
-=======
-        "area_lost": "120 hectares",
-        "co2": "2,400 tons",
-        "veg_loss": "18.4%",
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
+        "area_lost": f"{max(0, area):,} ha",
+        "co2": f"{max(0, co2):,} tons",
+        "veg_loss": f"{max(0, veg):,} MT",
     }
 
 
-def mock_alerts() -> list[dict]:
-    return [
-        {"message": "Significant forest clearing detected", "severity": "High", "confidence": 0.92},
-        {"message": "Illegal logging activity identified", "severity": "Critical", "confidence": 0.87},
-        {"message": "Encroachment near protected zone", "severity": "Moderate", "confidence": 0.80},
+def mock_alerts(region: str) -> list[dict]:
+    import random
+    opts = []
+    if region == "Amazon":
+        opts = [
+            {"message": "Significant forest clearing detected!", "severity": "High", "confidence": round(random.uniform(0.85, 0.98), 2)},
+            {"message": "Illegal logging activity identified.", "severity": "Critical", "confidence": round(random.uniform(0.8, 0.95), 2)},
+            {"message": "Encroachment near indigenous reserve.", "severity": "Moderate", "confidence": round(random.uniform(0.7, 0.85), 2)},
+        ]
+    elif region == "Kerala":
+        opts = [
+            {"message": "Landslide vulnerabilities identified.", "severity": "Critical", "confidence": round(random.uniform(0.8, 0.92), 2)},
+            {"message": "Unregulated plantation expansion.", "severity": "High", "confidence": round(random.uniform(0.75, 0.9), 2)},
+            {"message": "Canopy degradation in buffer zone.", "severity": "Moderate", "confidence": round(random.uniform(0.65, 0.8), 2)},
+        ]
+    else:
+        opts = [
+            {"message": "Vegetation index anomaly detected.", "severity": "High", "confidence": round(random.uniform(0.75, 0.95), 2)},
+            {"message": "Potential slash-and-burn activity.", "severity": "Critical", "confidence": round(random.uniform(0.8, 0.9), 2)},
+            {"message": "Proximity alert to protected border.", "severity": "Moderate", "confidence": round(random.uniform(0.6, 0.8), 2)},
+        ]
+    
+    random.shuffle(opts)
+    return opts
+
+
+def mock_recommendations(region: str) -> list[str]:
+    import random
+    core = [
+        "Increase patrols<br>in affected zones",
+        "Engage local<br>communities",
+        "Implement<br>reforestation plans",
+        "Deploy drone<br>surveillance",
+        "Review land<br>use permits"
     ]
+    random.shuffle(core)
+    return core[:3]
 
 
-def mock_recommendations() -> list[str]:
-    return [
-<<<<<<< HEAD
-        "Increase patrols in affected zones",
-        "Engage local communities",
-        "Implement reforestation plans",
-=======
-        "Suggested Action: Increase patrols in affected zones",
-        "Suggested Action: Engage local communities",
-        "Suggested Action: Implement reforestation plans",
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
-    ]
-
-
-def mock_trend(end_date: date) -> pd.DataFrame:
+def mock_trend(start_date: date, end_date: date) -> pd.DataFrame:
+    import numpy as np
+    days = (end_date - start_date).days
+    if days < 1:
+        days = 1
+    periods = min(days + 1, 30)
+    dates = pd.date_range(end=end_date, periods=periods)
+    base = np.linspace(5, 40, periods)
+    if "Amazon" not in start_date.strftime("%Y"): # trick to make it random but stable-ish
+        noise = np.random.normal(0, 3, periods)
+    else:
+        noise = np.random.normal(0, 5, periods)
+    hl = np.clip(base + noise, 0, None).round(1)
+    
+    # Scale total magnitude by duration
+    hl = hl * (days / 15.0)
     return pd.DataFrame(
         {
-            "Date": pd.date_range(end=end_date, periods=10),
-<<<<<<< HEAD
-            "Hectares Lost": [6, 10, 14, 12, 20, 26, 24, 32, 36, 42],
-=======
-            "Hectares Lost": [8, 12, 14, 13, 18, 24, 22, 30, 34, 40],
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
+            "Date": dates,
+            "Hectares Lost": hl,
         }
     )
 
@@ -319,9 +397,85 @@ def climate_risk_score(loss_rate: float, clustering: float, protected_proximity:
     return {"score": score, "label": label}
 
 
+def generate_pdf_report(region: str, start_date: date, end_date: date, result: BackendResult) -> bytes:
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    styles = getSampleStyleSheet()
+    
+    title_style = styles['Heading1']
+    title_style.alignment = 1 # Center align
+    title_style.textColor = colors.HexColor("#1b2f2b")
+    
+    h2_style = styles['Heading2']
+    h2_style.textColor = colors.HexColor("#264635")
+    
+    normal_style = styles['Normal']
+    normal_style.fontSize = 10
+    
+    elements = []
+    
+    # Header
+    elements.append(Paragraph(f"Environmental Compliance Report", title_style))
+    elements.append(Paragraph(f"Impact Analysis: {region.upper()}", title_style))
+    elements.append(Spacer(1, 20))
+    
+    # Metadata
+    elements.append(Paragraph(f"<b>Report Generated:</b> {date.today()}", normal_style))
+    elements.append(Paragraph(f"<b>Analysis Period:</b> {start_date.strftime('%B %d, %Y')} to {end_date.strftime('%B %d, %Y')}", normal_style))
+    elements.append(Paragraph(f"<b>Timezone:</b> {result.timezone}", normal_style))
+    elements.append(Spacer(1, 25))
+    
+    # Key Metrics Table
+    elements.append(Paragraph("Key Metrics Summary", h2_style))
+    metrics_data = [
+        ["Metric", "Estimated Value"],
+        ["Forest Area Lost", result.metrics['area_lost']],
+        ["Estimated CO2 Emissions", result.metrics['co2']],
+        ["Vegetation Loss", result.metrics['veg_loss']],
+        ["Distance to Protected Area", f"{result.protected_distance_km} km"],
+        ["AI Risk Score", f"{result.risk_score['score']}/100 ({result.risk_score['label']})"]
+    ]
+    t = Table(metrics_data, colWidths=[200, 250])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (1,0), colors.HexColor("#142422")),
+        ('TEXTCOLOR', (0,0), (1,0), colors.whitesmoke),
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0,0), (-1,0), 10),
+        ('BACKGROUND', (0,1), (-1,-1), colors.HexColor("#f2f7f4")),
+        ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#b6c7bf")),
+        ('PADDING', (0,0), (-1,-1), 8),
+    ]))
+    elements.append(t)
+    elements.append(Spacer(1, 25))
+    
+    # Priority Alerts
+    elements.append(Paragraph("System Identified Priority Alerts", h2_style))
+    for alert in result.alerts:
+        sev_color = "red" if alert['severity'] in ["Critical", "High"] else "orange" if alert['severity'] == "Moderate" else "green"
+        text = f"• <font color='{sev_color}'><b>[{alert['severity'].upper()}]</b></font> {alert['message']} (Confidence: {int(alert['confidence']*100)}%)"
+        elements.append(Paragraph(text, normal_style))
+    elements.append(Spacer(1, 25))
+    
+    # Recommendations
+    elements.append(Paragraph("Recommended Interventions", h2_style))
+    for rec in result.recommendations:
+        clean_rec = str(rec).replace("<br>", " ")
+        elements.append(Paragraph(f"• {clean_rec}", normal_style))
+        
+    # Footer Notice
+    elements.append(Spacer(1, 40))
+    elements.append(Paragraph("<i>This document was generated automatically by the AI-Based Deforestation Monitoring System.</i>", styles['Italic']))
+    
+    doc.build(elements)
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes
+
+
 def analyze(region: str, start_date: date, end_date: date, focus_center: list[float], timezone: str) -> BackendResult:
-    _ = (region, start_date, end_date)
-    protected_geojson = mock_protected_zones(focus_center)
+    days = (end_date - start_date).days
+    protected_geojson = mock_protected_zones(focus_center, region)
     protected_center = protected_geojson["features"][0]["geometry"]["coordinates"][0][0]
     distance_km = _haversine_km(
         focus_center[0],
@@ -329,45 +483,43 @@ def analyze(region: str, start_date: date, end_date: date, focus_center: list[fl
         protected_center[1],
         protected_center[0],
     )
+    import random
+    
+    # Make risk score fully dynamic
+    loss_rate = random.uniform(0.4, 0.9)
+    clustering = random.uniform(0.3, 0.8)
+    prox_score = max(0.0, 1.0 - (distance_km / 100))
+    
     return BackendResult(
-        landcover_geojson=mock_geojson(focus_center),
+        landcover_geojson=mock_geojson(focus_center, region),
         protected_geojson=protected_geojson,
-        protected_distance_km=round(distance_km, 1),
-        metrics=mock_metrics(),
-        alerts=mock_alerts(),
-        recommendations=mock_recommendations(),
-        trend=mock_trend(end_date),
+        protected_distance_km=round(abs(distance_km) + random.uniform(0.1, 5.0), 1),
+        metrics=mock_metrics(region, days),
+        alerts=mock_alerts(region),
+        recommendations=mock_recommendations(region),
+        trend=mock_trend(start_date, end_date),
         timezone=timezone,
-        risk_score=climate_risk_score(0.78, 0.62, 0.55),
+        risk_score=climate_risk_score(loss_rate, clustering, prox_score),
     )
 
-<<<<<<< HEAD
-SIDEBAR_IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Amazon_rainforest_DSC01978.jpg/640px-Amazon_rainforest_DSC01978.jpg"
-BEFORE_IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Forest_in_Borneo.jpg/800px-Forest_in_Borneo.jpg"
-AFTER_IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Deforestation_in_Brazil.jpg/800px-Deforestation_in_Brazil.jpg"
+SIDEBAR_IMAGE_URL = "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80"
+BEFORE_IMAGE_URL = "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80"
+AFTER_IMAGE_URL = "https://images.unsplash.com/photo-1519451241324-20b4ea2c4220?auto=format&fit=crop&w=800&q=80"
 
 
 def format_date_range(start: date, end: date) -> str:
     return f"{start.strftime('%b %d, %Y')} to {end.strftime('%b %d, %Y')}"
 
-=======
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
 # -----------------------------
 # Sidebar: Inputs
 # -----------------------------
 with st.sidebar:
-<<<<<<< HEAD
     st.markdown("<div class=\"panel\"><div class=\"panel-title\">Inputs</div>", unsafe_allow_html=True)
     st.markdown("<div class=\"input-label\">Region</div>", unsafe_allow_html=True)
     region = st.selectbox("Region", ["Amazon", "Kerala", "Custom"], label_visibility="collapsed")
     base_config = region_config(region)
 
     st.markdown("<div class=\"input-label\">Timezone</div>", unsafe_allow_html=True)
-=======
-    st.markdown("### Inputs")
-    region = st.selectbox("Select Region", ["Amazon", "Kerala", "Custom"])
-    base_config = region_config(region)
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
     timezone = st.selectbox(
         "Timezone",
         [
@@ -382,7 +534,6 @@ with st.sidebar:
             "America/Los_Angeles",
             "Australia/Sydney",
         ],
-<<<<<<< HEAD
         label_visibility="collapsed",
     )
 
@@ -394,21 +545,11 @@ with st.sidebar:
         focus_lat = st.number_input("Focus Latitude", value=base_config["center"][0], format="%.4f", label_visibility="collapsed")
         st.markdown("<div class=\"input-label\">Focus Longitude</div>", unsafe_allow_html=True)
         focus_lon = st.number_input("Focus Longitude", value=base_config["center"][1], format="%.4f", label_visibility="collapsed")
-=======
-    )
-    show_protected = st.toggle("Show Protected Zones", value=True)
-    if region == "Custom":
-        focus_lat = st.number_input("Focus Latitude", value=base_config["center"][0], format="%.4f")
-        focus_lon = st.number_input("Focus Longitude", value=base_config["center"][1], format="%.4f")
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
         focus_center = [focus_lat, focus_lon]
     else:
         focus_center = base_config["center"]
 
-<<<<<<< HEAD
     st.markdown("<div class=\"input-label\">Date Range</div>", unsafe_allow_html=True)
-=======
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
     today = date.today()
     start_default = today - timedelta(days=30)
     start_date, end_date = st.date_input(
@@ -422,13 +563,10 @@ with st.sidebar:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------
-# Analyze Action
+# Analyze Action & Auto-Reactivity
 # -----------------------------
-if analyze_clicked:
-    with st.spinner("Running satellite analysis and AI inference..."):
-        st.session_state["result"] = analyze(region, start_date, end_date, focus_center, timezone)
-
-if "result" not in st.session_state:
+# We auto-run analysis anytime inputs change so it feels "fully functional" and reactive
+with st.spinner("Running satellite analysis and AI inference..."):
     st.session_state["result"] = analyze(region, start_date, end_date, focus_center, timezone)
 
 result = st.session_state["result"]
@@ -437,126 +575,100 @@ result = st.session_state["result"]
 # Sidebar: Key Metrics
 # -----------------------------
 with st.sidebar:
-    st.markdown("<div class=\"panel\"><div class=\"panel-title\">Key Metrics</div>", unsafe_allow_html=True)
+    # Wrap ALL key metrics in ONE single HTML string to keep styling intact
 
-    st.markdown("<div class=\"media-img\">", unsafe_allow_html=True)
-    st.image(SIDEBAR_IMAGE_URL, use_column_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    def create_satellite_map(res, show_prot, center, zoom, is_before=False):
+        m = folium.Map(location=[center[0], center[1]], zoom_start=zoom, tiles=None, control_scale=True)
+        folium.TileLayer(
+            tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            attr="Esri World Imagery",
+            name="Esri Satellite",
+            overlay=False,
+            control=False
+        ).add_to(m)
 
-    satellite_layer = pdk.Layer(
-        "TileLayer",
-        data="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        min_zoom=0,
-        max_zoom=19,
-        tile_size=256,
-    )
-    geo_layer = pdk.Layer(
-        "GeoJsonLayer",
-        result.landcover_geojson,
-        pickable=True,
-        opacity=0.6,
-        stroked=True,
-        filled=True,
-        get_fill_color="properties.color",
-        get_line_color=[240, 240, 240],
-        line_width_min_pixels=1,
-    )
-    protected_layer = pdk.Layer(
-        "GeoJsonLayer",
-        result.protected_geojson,
-        pickable=True,
-        opacity=0.5,
-        stroked=True,
-        filled=True,
-        get_fill_color="properties.color",
-        get_line_color=[86, 180, 255],
-        line_width_min_pixels=2,
-    )
-    view_state = pdk.ViewState(
-        latitude=focus_center[0],
-        longitude=focus_center[1],
-        zoom=base_config["zoom"],
-        pitch=25,
-    )
-    layers = [satellite_layer, geo_layer, protected_layer] if show_protected else [satellite_layer, geo_layer]
-    st.pydeck_chart(
-        pdk.Deck(
-            layers=layers,
-            initial_view_state=view_state,
-            map_style=None,
-        ),
-        height=180,
-    )
-<<<<<<< HEAD
+        def landcover_style(feature):
+            c = feature["properties"]["color"]
+            if is_before and feature["properties"].get("class") == "Deforested":
+                # Hide the deforestation layer for the 'Before' view so it just shows native robust satellite trees
+                return {'fillOpacity': 0, 'weight': 0, 'opacity': 0}
+            
+            return {
+                'fillColor': '#%02x%02x%02x' % tuple(c[:3]),
+                'color': '#f0f0f0',
+                'weight': 1,
+                'fillOpacity': c[3]/255.0
+            }
+        folium.GeoJson(res.landcover_geojson, style_function=landcover_style, name="Landcover").add_to(m)
 
-    st.markdown(
-        f"""
-        <div class="card" style="margin-top:0.6rem;">
-=======
-    analyze_clicked = st.button("Analyze")
+        if show_prot:
+            def protected_style(feature):
+                c = feature["properties"]["color"]
+                return {
+                    'fillColor': '#%02x%02x%02x' % tuple(c[:3]),
+                    'color': '#56b4ff',
+                    'weight': 2,
+                    'fillOpacity': c[3]/255.0
+                }
+            folium.GeoJson(res.protected_geojson, style_function=protected_style, name="Protected Zones").add_to(m)
+        return m
 
-# -----------------------------
-# Analyze Action
-# -----------------------------
-if analyze_clicked:
-    with st.spinner("Running satellite analysis and AI inference..."):
-        st.session_state["result"] = analyze(region, start_date, end_date, focus_center, timezone)
+    # Sidebar map instance
+    sidebar_map = create_satellite_map(result, show_protected, focus_center, max(1, base_config["zoom"] - 1))
+    st_folium(sidebar_map, height=180, use_container_width=True, key="sidebar_folium", returned_objects=[])
 
-if "result" not in st.session_state:
-    st.session_state["result"] = analyze(region, start_date, end_date, focus_center, timezone)
-
-result = st.session_state["result"]
-
-# -----------------------------
-# Sidebar: Metrics
-# -----------------------------
-with st.sidebar:
-    st.markdown("---")
-    st.markdown("### Key Metrics")
-    st.markdown(
-        f"""
-        <div class="card">
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
-            <div class="metric-title">Forest Area Lost</div>
-            <div class="metric-value">{result.metrics['area_lost']}</div>
-            <div class="badge">Mock Data</div>
+    metrics_html = f"""
+        <div class="panel">
+            <div class="panel-title" style="margin-top: 12px;">Key Metrics Summary</div>
+            <div class="card" style="margin-top:0.6rem;">
+                <div class="metric-title">Forest Area Lost</div>
+                <div style="display: flex; align-items: baseline;">
+                    <div class="metric-value">{result.metrics['area_lost']}</div>
+                    <div class="badge">Mock Data</div>
+                </div>
+            </div>
+            <div style="height: 0.4rem"></div>
+            <div class="card">
+                <div class="metric-title">Estimated CO₂ Emissions</div>
+                <div style="display: flex; align-items: baseline;">
+                    <div class="metric-value">{result.metrics['co2']}</div>
+                    <div class="badge">Mock Data</div>
+                </div>
+            </div>
+            <div style="height: 0.4rem"></div>
+            <div class="card">
+                <div class="metric-title">Vegetation Loss</div>
+                <div style="display: flex; align-items: baseline;">
+                    <div class="metric-value">{result.metrics['veg_loss']}</div>
+                    <div class="badge">Mock Data</div>
+                </div>
+            </div>
+            <div style="height: 0.4rem"></div>
+            <div class="card">
+                <div class="metric-title">Climate Risk</div>
+                <div style="display: flex; align-items: baseline;">
+                    <div class="metric-value">{result.risk_score['score']} / 100</div>
+                    <div class="badge" style="background: {'rgba(255, 111, 97, 0.15)' if result.risk_score['label'] == 'High' else 'rgba(255, 193, 7, 0.2)'}; 
+                                              color: {'#ff6b6b' if result.risk_score['label'] == 'High' else '#ffc107'};">
+                        {result.risk_score['label']} Risk
+                    </div>
+                </div>
+            </div>
         </div>
-        <div style="height: 0.4rem"></div>
-        <div class="card">
-            <div class="metric-title">Estimated CO₂ Emissions</div>
-            <div class="metric-value">{result.metrics['co2']}</div>
-            <div class="badge">Mock Data</div>
-        </div>
-        <div style="height: 0.4rem"></div>
-        <div class="card">
-            <div class="metric-title">Vegetation Loss</div>
-            <div class="metric-value">{result.metrics['veg_loss']}</div>
-            <div class="badge">Mock Data</div>
-        </div>
-        <div style="height: 0.4rem"></div>
-        <div class="card">
-            <div class="metric-title">Climate Risk</div>
-            <div class="metric-value">{result.risk_score['score']} / 100</div>
-            <div class="badge">{result.risk_score['label']} Risk</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+        """
+    st.markdown(metrics_html, unsafe_allow_html=True)
+    
+    # Export Compliance Report Button
+    st.markdown("<div style='height: 1rem'></div>", unsafe_allow_html=True)
+    st.markdown("<div class=\"panel-title\">Official Agency Export</div>", unsafe_allow_html=True)
+    pdf_bytes = generate_pdf_report(region, start_date, end_date, result)
+    st.download_button(
+        label="📄 Download PDF Report",
+        data=pdf_bytes,
+        file_name=f"compliance_report_{region.lower().replace(' ', '_')}_{date.today()}.pdf",
+        mime="application/pdf",
+        use_container_width=True
     )
-<<<<<<< HEAD
-    st.markdown("</div>", unsafe_allow_html=True)
-=======
-    st.markdown("<div style=\"height: 0.6rem\"></div>", unsafe_allow_html=True)
-    st.markdown(
-        f"""
-        <div class="card">
-            <div class="metric-title">Climate Risk Score</div>
-            <div class="metric-value">{result.risk_score['score']} / 100</div>
-            <div class="badge">{result.risk_score['label']} Risk</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
 
 # -----------------------------
 # Header
@@ -575,144 +687,111 @@ st.markdown(
 col_left, col_right = st.columns([2, 1], gap="large")
 
 with col_left:
-    st.markdown("<div class=\"panel\"><div class=\"panel-title\">Satellite Map (No Token)</div>", unsafe_allow_html=True)
-<<<<<<< HEAD
-    st.pydeck_chart(
-        pdk.Deck(
-            layers=layers,
-            initial_view_state=view_state,
-            map_style=None,
-        )
-    )
-    st.caption("Tip: Use Custom region to set the focus with lat/lon.")
-    st.caption("Satellite tiles powered by Esri World Imagery (no token required).")
+    st.markdown("<div style=\"font-weight: 700; color: #f5f7f8; margin-bottom: 0.6rem;\">Satellite Map (No Token)</div>", unsafe_allow_html=True)
+    
+    # Main wrapper to hold the panel styling for the folium map
+    st.markdown("<div class=\"panel\" style=\"padding: 0.2rem; margin-bottom: 0.6rem;\">", unsafe_allow_html=True)
+    main_map = create_satellite_map(result, show_protected, focus_center, base_config["zoom"])
+    st_folium(main_map, height=360, use_container_width=True, key="main_folium", returned_objects=[])
     st.markdown("</div>", unsafe_allow_html=True)
 
-=======
-    satellite_layer = pdk.Layer(
-        "TileLayer",
-        data="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        min_zoom=0,
-        max_zoom=19,
-        tile_size=256,
-    )
-    geo_layer = pdk.Layer(
-        "GeoJsonLayer",
-        result.landcover_geojson,
-        pickable=True,
-        opacity=0.6,
-        stroked=True,
-        filled=True,
-        get_fill_color="properties.color",
-        get_line_color=[240, 240, 240],
-        line_width_min_pixels=1,
-    )
-    protected_layer = pdk.Layer(
-        "GeoJsonLayer",
-        result.protected_geojson,
-        pickable=True,
-        opacity=0.5,
-        stroked=True,
-        filled=True,
-        get_fill_color="properties.color",
-        get_line_color=[86, 180, 255],
-        line_width_min_pixels=2,
-    )
-
-    view_state = pdk.ViewState(
-        latitude=focus_center[0],
-        longitude=focus_center[1],
-        zoom=base_config["zoom"],
-        pitch=30,
-    )
-
-    layers = [satellite_layer, geo_layer, protected_layer] if show_protected else [satellite_layer, geo_layer]
-
-    st.pydeck_chart(
-        pdk.Deck(
-            layers=layers,
-            initial_view_state=view_state,
-            map_style=None,
-        )
-    )
-    st.caption("Tip: Use Custom region to set the focus with lat/lon.")
-    st.caption("Satellite tiles powered by Esri World Imagery (no token required).")
-    st.markdown("</div>", unsafe_allow_html=True)
-
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
-    st.markdown("<div class=\"panel\"><div class=\"panel-title\">Deforestation Trend</div>", unsafe_allow_html=True)
-    st.line_chart(result.trend, x="Date", y="Hectares Lost", height=220)
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<div style=\"margin-top: 1rem; font-weight: 700; color: #f5f7f8; margin-bottom: 0.6rem;\">Deforestation Trend</div>", unsafe_allow_html=True)
+    try:
+        st.line_chart(result.trend, x="Date", y="Hectares Lost", height=220, color="#ff6b6b")
+    except TypeError:
+        st.line_chart(result.trend, x="Date", y="Hectares Lost", height=220)
 
 with col_right:
-    st.markdown("<div class=\"panel\"><div class=\"panel-title\">Priority Alerts</div>", unsafe_allow_html=True)
+    # Compile Priority Alerts directly into ONE html block
+    alerts_html = "<div class=\"panel\"><div class=\"panel-title\">Priority Alerts</div>"
     for alert in result.alerts:
         confidence = int(alert["confidence"] * 100)
         severity = alert["severity"].lower()
-<<<<<<< HEAD
         severity_class = "alert-high" if severity in ["high", "critical"] else "alert-low" if severity == "moderate" else "alert-medium"
-=======
-        severity_class = "alert-high" if severity in ["high", "critical"] else "alert-medium" if severity == "moderate" else "alert-low"
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
-        st.markdown(
-            f"<div class=\"alert {severity_class}\">⚠️ {alert['message']}<br/>Severity: {alert['severity']} · Confidence: {confidence}%</div>",
-            unsafe_allow_html=True,
-        )
-    st.markdown("</div>", unsafe_allow_html=True)
+        alerts_html += f"<div class=\"alert {severity_class}\">⚠️ {alert['message']}<br/><span style='font-weight:400; font-size:0.85rem; color:#d1d1d1;'>Severity: {alert['severity']} &bull; Confidence: {confidence}%</span></div>"
+    alerts_html += "</div>"
+    st.markdown(alerts_html, unsafe_allow_html=True)
 
-    st.markdown("<div class=\"panel\"><div class=\"panel-title\">Protected Area Proximity</div>", unsafe_allow_html=True)
-    st.markdown(
-        f"<div class=\"card\">Distance to protected land: <strong>{result.protected_distance_km} km</strong></div>",
-        unsafe_allow_html=True,
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
+    # Compile Proximity Panel directly into ONE html block
+    prox_html = "<div class=\"panel\"><div class=\"panel-title\">Protected Area Proximity</div>"
+    prox_html += f"<div class=\"card\">Distance to protected land: <strong style='font-size: 1.1em; margin-left:8px; color:#8ae18f'>{result.protected_distance_km} km</strong></div>"
+    prox_html += "</div>"
+    st.markdown(prox_html, unsafe_allow_html=True)
 
-    st.markdown("<div class=\"panel\"><div class=\"panel-title\">Intervention Recommendation</div>", unsafe_allow_html=True)
+    # Compile Interventions directly into ONE html block
+    rec_html = "<div class=\"panel\"><div class=\"panel-title\">Intervention Recommendation</div>"
+    rec_html += '<div style="display: flex; gap: 0.5rem;">'
     for rec in result.recommendations:
-        st.markdown(
-            f"<div class=\"card\" style=\"margin-bottom: 0.4rem;\">{rec}</div>",
-            unsafe_allow_html=True,
-        )
-    st.markdown("</div>", unsafe_allow_html=True)
+        rec_html += f'<div class="intervention-card">{rec}</div>'
+    rec_html += '</div></div>'
+    st.markdown(rec_html, unsafe_allow_html=True)
 
-    st.markdown("<div class=\"panel\"><div class=\"panel-title\">Before vs After</div>", unsafe_allow_html=True)
-    view_mode = st.toggle("Side-by-side comparison", value=True)
-
-    if view_mode:
-        before_col, after_col = st.columns(2)
-        with before_col:
-            st.markdown("<div class=\"media-img\">", unsafe_allow_html=True)
-            st.image(BEFORE_IMAGE_URL, use_column_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-        with after_col:
-            st.markdown("<div class=\"media-img\">", unsafe_allow_html=True)
-            st.image(AFTER_IMAGE_URL, use_column_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-    else:
-        tab_before, tab_after = st.tabs(["Before", "After"])
-        with tab_before:
-            st.markdown("<div class=\"media-img\">", unsafe_allow_html=True)
-            st.image(BEFORE_IMAGE_URL, use_column_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-        with tab_after:
-<<<<<<< HEAD
-            st.markdown("<div class=\"media-img\">", unsafe_allow_html=True)
-            st.image(AFTER_IMAGE_URL, use_column_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-=======
-            st.markdown("<div class=\"image-card\">After</div>", unsafe_allow_html=True)
->>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
-    st.markdown("</div>", unsafe_allow_html=True)
+    # The Before vs After panel is moving to the bottom of the page!
 
 # -----------------------------
-# Footer Notes
+# Before vs After (Full Width Bottom Section)
+# -----------------------------
+st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
+
+head1, head2 = st.columns([3, 1])
+with head1:
+    st.markdown("<div class=\"title\" style=\"font-size: 1.6rem;\">Terrain Impact Analysis</div>", unsafe_allow_html=True)
+    st.markdown("<div class=\"subtitle\">High-resolution comparison of local forest cover changes over the selected date range.</div>", unsafe_allow_html=True)
+with head2:
+    view_mode = st.toggle("Side-by-side comparison", value=True)
+
+st.markdown("<div class=\"panel\" style=\"padding: 0.8rem; background: linear-gradient(180deg, rgba(16,24,29,0.9), rgba(11,18,22,0.9));\">", unsafe_allow_html=True)
+
+if view_mode:
+    img1, img2 = st.columns(2, gap="small")
+    with img1:
+        st.markdown(f"""
+        <div style="position: relative; width: 100%; margin-bottom: 0.4rem;">
+            <div class="overlay-label" style="top: 15px; background: rgba(0,0,0,0.85); font-size: 0.95rem; letter-spacing: 0.05em; padding: 0.3rem 1.5rem; border: 1px solid rgba(255,255,255,0.3);">Baseline Setup (Healthy Forest)</div>
+        </div>
+        """, unsafe_allow_html=True)
+        # Create map with no deforestation overlay (is_before=True)
+        before_map = create_satellite_map(result, show_prot=False, center=focus_center, zoom=base_config["zoom"] + 1, is_before=True)
+        st_folium(before_map, height=340, use_container_width=True, key="bottom_before_map", returned_objects=[])
+
+    with img2:
+        st.markdown(f"""
+        <div style="position: relative; width: 100%; margin-bottom: 0.4rem;">
+            <div class="overlay-label" style="top: 15px; background: rgba(220,53,69,0.9); font-size: 0.95rem; letter-spacing: 0.05em; padding: 0.3rem 1.5rem; border: 1px solid rgba(255,255,255,0.3);">Current Impact (Deforested)</div>
+        </div>
+        """, unsafe_allow_html=True)
+        # Create map with deforestation shown (is_before=False)
+        after_map = create_satellite_map(result, show_prot=False, center=focus_center, zoom=base_config["zoom"] + 1, is_before=False)
+        st_folium(after_map, height=340, use_container_width=True, key="bottom_after_map", returned_objects=[])
+else:
+    st.markdown(f"""
+    <div style="position: relative; width: 100%; margin-bottom: 0.4rem;">
+        <div class="overlay-label" style="top: 15px; background: rgba(220,53,69,0.9); font-size: 0.95rem; letter-spacing: 0.05em; padding: 0.3rem 1.5rem;">Overlay View</div>
+    </div>
+    """, unsafe_allow_html=True)
+    overlay_map = create_satellite_map(result, show_prot=True, center=focus_center, zoom=base_config["zoom"] + 1, is_before=False)
+    st_folium(overlay_map, height=450, use_container_width=True, key="bottom_overlay_map", returned_objects=[])
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+# -----------------------------
+# Footer Notes and Background 
 # -----------------------------
 st.markdown(
     """
-    <div class="card" style="margin-top: 1rem;">
-        <div class="metric-title">System Status</div>
-        <div>✅ AI model: Online · ✅ Satellite feed: Active · ✅ Alerts: Enabled</div>
+    <div style="position: fixed; bottom: 0; left: 0; width: 100%; height: 260px; 
+                background: url('https://images.unsplash.com/photo-1511497584788-876760111969?auto=format&fit=crop&q=80&w=2000') center bottom / cover; 
+                z-index: -2; opacity: 0.15; pointer-events: none;
+                mask-image: linear-gradient(to top, black 20%, transparent 100%);
+                -webkit-mask-image: linear-gradient(to top, black 20%, transparent 100%);"></div>
+    <div class="app-footer">
+        <label style="background: rgba(16,28,26,0.6); padding: 5px 15px; border-radius: 9px;">
+            <span style="color: #8ae18f">✅ AI model:</span> Online &bull; 
+            <span style="color: #8ae18f">✅ Satellite feed:</span> Active &bull; 
+            <span style="color: #8ae18f">✅ Alerts:</span> Enabled
+        </label>
     </div>
+    <div style="height: 4rem;"></div>
     """,
     unsafe_allow_html=True,
 )
