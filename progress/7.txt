@@ -1,0 +1,1 @@
+﻿Added composite climate risk score in backend and displayed it as a sidebar metric card.

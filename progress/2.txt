@@ -1,0 +1,1 @@
+﻿Added live-click heatmap map using folium + streamlit-folium and integrated mock heatmap points.

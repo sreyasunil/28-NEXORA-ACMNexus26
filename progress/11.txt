@@ -1,0 +1,1 @@
+﻿Restyled the dashboard to match the reference image, adding input panels, a sidebar mini map, and refined cards.

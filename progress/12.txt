@@ -1,0 +1,1 @@
+﻿Added real image URLs for sidebar and before/after sections to make the UI more visual.

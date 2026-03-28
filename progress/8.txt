@@ -1,0 +1,1 @@
+﻿Implemented priority alerts with severity/confidence, protected zone overlay + distance, and intervention recommendations.

@@ -1,0 +1,1 @@
+﻿Refined UI panels and alert styling to match the reference layout with card-like sections and colored priorities.

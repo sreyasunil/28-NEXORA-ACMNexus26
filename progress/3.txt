@@ -1,0 +1,1 @@
+﻿Replaced folium live map with a stable PyDeck heatmap layer and added custom lat/lon focus controls.

@@ -1,0 +1,1 @@
+﻿Removed backend.py and inlined mock backend logic into app.py while keeping the UI unchanged.

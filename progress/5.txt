@@ -1,0 +1,1 @@
+﻿Switched to satellite basemap, added timezone selection, and removed heatmap rendering.
