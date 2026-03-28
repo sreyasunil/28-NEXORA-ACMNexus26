@@ -1,1 +1,9 @@
+<<<<<<< HEAD
 ﻿Replaced folium live map with a stable PyDeck heatmap layer and added custom lat/lon focus controls.
+=======
+PROGRESS PROOF:
+- Diagnosed authentication crashing issue returning "ee.Initialize: no project found"
+- Refactored Earth Engine init function to gracefully handle Google Cloud Project ID params
+- Added a Streamlit text-input directly in the sidebar for users to enter their unique ID securely and dynamically.
+- The workflow now accurately initializes GE API upon valid Project ID input.
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7

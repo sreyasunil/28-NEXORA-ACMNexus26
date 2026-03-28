@@ -1,1 +1,8 @@
+<<<<<<< HEAD
 ﻿Switched satellite map to token-free Esri World Imagery tile layer.
+=======
+PROGRESS PROOF:
+- Replaced the `pydeck` mapping component with native `folium` elements.
+- Integrated `streamlit-folium` into the dashboard to cleanly render the Esri satellite basemaps.
+- The user interface now correctly leverages folium layer rendering mechanics for increased extensibility instead of pure DeckGL.
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7

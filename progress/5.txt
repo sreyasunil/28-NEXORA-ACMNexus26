@@ -1,1 +1,7 @@
+<<<<<<< HEAD
 ﻿Switched to satellite basemap, added timezone selection, and removed heatmap rendering.
+=======
+PROGRESS PROOF:
+- Implemented an elegant UX fix that catches users trying to analyze Earth Engine layers without providing a GCP Project ID.
+- Displays a prominent `st.warning()` block with specific instructional steps that natively blocks the execution instead of crashing the Streamlit app.
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7

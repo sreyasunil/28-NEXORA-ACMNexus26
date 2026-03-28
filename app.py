@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿from datetime import date, timedelta
+=======
+from datetime import date, timedelta
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
 from dataclasses import dataclass
 from math import radians, sin, cos, atan2, sqrt
 
@@ -50,10 +54,24 @@ st.markdown(
         color: var(--muted);
         margin-bottom: 1.5rem;
     }
+<<<<<<< HEAD
     .panel {
         background: linear-gradient(180deg, rgba(22, 34, 41, 0.95), rgba(16, 24, 29, 0.95));
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 14px;
+=======
+    .card {
+        background: linear-gradient(180deg, rgba(30, 44, 52, 0.92), rgba(20, 30, 36, 0.92));
+        padding: 1rem 1.2rem;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+    .panel {
+        background: linear-gradient(180deg, rgba(22, 34, 41, 0.95), rgba(16, 24, 29, 0.95));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
         padding: 0.8rem 1rem 1rem;
         margin-bottom: 0.8rem;
         box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
@@ -63,6 +81,7 @@ st.markdown(
         font-weight: 700;
         color: #f5f7f8;
         margin-bottom: 0.6rem;
+<<<<<<< HEAD
     }
     .card {
         background: linear-gradient(180deg, rgba(30, 44, 52, 0.92), rgba(20, 30, 36, 0.92));
@@ -70,6 +89,8 @@ st.markdown(
         border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+=======
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
     }
     .metric-title {
         color: var(--muted);
@@ -92,7 +113,11 @@ st.markdown(
         font-weight: 600;
     }
     .alert {
+<<<<<<< HEAD
         padding: 0.75rem 0.9rem;
+=======
+        padding: 0.8rem 1rem;
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
         border-radius: 12px;
         margin-bottom: 0.6rem;
         color: #f8f2f2;
@@ -233,9 +258,15 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 def mock_metrics() -> dict:
     return {
+<<<<<<< HEAD
         "area_lost": "1,250 ha",
         "co2": "780,000 tons",
         "veg_loss": "8,500 MT",
+=======
+        "area_lost": "120 hectares",
+        "co2": "2,400 tons",
+        "veg_loss": "18.4%",
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
     }
 
 
@@ -249,9 +280,15 @@ def mock_alerts() -> list[dict]:
 
 def mock_recommendations() -> list[str]:
     return [
+<<<<<<< HEAD
         "Increase patrols in affected zones",
         "Engage local communities",
         "Implement reforestation plans",
+=======
+        "Suggested Action: Increase patrols in affected zones",
+        "Suggested Action: Engage local communities",
+        "Suggested Action: Implement reforestation plans",
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
     ]
 
 
@@ -259,7 +296,11 @@ def mock_trend(end_date: date) -> pd.DataFrame:
     return pd.DataFrame(
         {
             "Date": pd.date_range(end=end_date, periods=10),
+<<<<<<< HEAD
             "Hectares Lost": [6, 10, 14, 12, 20, 26, 24, 32, 36, 42],
+=======
+            "Hectares Lost": [8, 12, 14, 13, 18, 24, 22, 30, 34, 40],
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
         }
     )
 
@@ -300,6 +341,7 @@ def analyze(region: str, start_date: date, end_date: date, focus_center: list[fl
         risk_score=climate_risk_score(0.78, 0.62, 0.55),
     )
 
+<<<<<<< HEAD
 SIDEBAR_IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Amazon_rainforest_DSC01978.jpg/640px-Amazon_rainforest_DSC01978.jpg"
 BEFORE_IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Forest_in_Borneo.jpg/800px-Forest_in_Borneo.jpg"
 AFTER_IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Deforestation_in_Brazil.jpg/800px-Deforestation_in_Brazil.jpg"
@@ -308,16 +350,24 @@ AFTER_IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Def
 def format_date_range(start: date, end: date) -> str:
     return f"{start.strftime('%b %d, %Y')} to {end.strftime('%b %d, %Y')}"
 
+=======
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
 # -----------------------------
 # Sidebar: Inputs
 # -----------------------------
 with st.sidebar:
+<<<<<<< HEAD
     st.markdown("<div class=\"panel\"><div class=\"panel-title\">Inputs</div>", unsafe_allow_html=True)
     st.markdown("<div class=\"input-label\">Region</div>", unsafe_allow_html=True)
     region = st.selectbox("Region", ["Amazon", "Kerala", "Custom"], label_visibility="collapsed")
     base_config = region_config(region)
 
     st.markdown("<div class=\"input-label\">Timezone</div>", unsafe_allow_html=True)
+=======
+    st.markdown("### Inputs")
+    region = st.selectbox("Select Region", ["Amazon", "Kerala", "Custom"])
+    base_config = region_config(region)
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
     timezone = st.selectbox(
         "Timezone",
         [
@@ -332,6 +382,7 @@ with st.sidebar:
             "America/Los_Angeles",
             "Australia/Sydney",
         ],
+<<<<<<< HEAD
         label_visibility="collapsed",
     )
 
@@ -343,11 +394,21 @@ with st.sidebar:
         focus_lat = st.number_input("Focus Latitude", value=base_config["center"][0], format="%.4f", label_visibility="collapsed")
         st.markdown("<div class=\"input-label\">Focus Longitude</div>", unsafe_allow_html=True)
         focus_lon = st.number_input("Focus Longitude", value=base_config["center"][1], format="%.4f", label_visibility="collapsed")
+=======
+    )
+    show_protected = st.toggle("Show Protected Zones", value=True)
+    if region == "Custom":
+        focus_lat = st.number_input("Focus Latitude", value=base_config["center"][0], format="%.4f")
+        focus_lon = st.number_input("Focus Longitude", value=base_config["center"][1], format="%.4f")
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
         focus_center = [focus_lat, focus_lon]
     else:
         focus_center = base_config["center"]
 
+<<<<<<< HEAD
     st.markdown("<div class=\"input-label\">Date Range</div>", unsafe_allow_html=True)
+=======
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
     today = date.today()
     start_default = today - timedelta(days=30)
     start_date, end_date = st.date_input(
@@ -426,10 +487,36 @@ with st.sidebar:
         ),
         height=180,
     )
+<<<<<<< HEAD
 
     st.markdown(
         f"""
         <div class="card" style="margin-top:0.6rem;">
+=======
+    analyze_clicked = st.button("Analyze")
+
+# -----------------------------
+# Analyze Action
+# -----------------------------
+if analyze_clicked:
+    with st.spinner("Running satellite analysis and AI inference..."):
+        st.session_state["result"] = analyze(region, start_date, end_date, focus_center, timezone)
+
+if "result" not in st.session_state:
+    st.session_state["result"] = analyze(region, start_date, end_date, focus_center, timezone)
+
+result = st.session_state["result"]
+
+# -----------------------------
+# Sidebar: Metrics
+# -----------------------------
+with st.sidebar:
+    st.markdown("---")
+    st.markdown("### Key Metrics")
+    st.markdown(
+        f"""
+        <div class="card">
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
             <div class="metric-title">Forest Area Lost</div>
             <div class="metric-value">{result.metrics['area_lost']}</div>
             <div class="badge">Mock Data</div>
@@ -455,7 +542,21 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
+<<<<<<< HEAD
     st.markdown("</div>", unsafe_allow_html=True)
+=======
+    st.markdown("<div style=\"height: 0.6rem\"></div>", unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="card">
+            <div class="metric-title">Climate Risk Score</div>
+            <div class="metric-value">{result.risk_score['score']} / 100</div>
+            <div class="badge">{result.risk_score['label']} Risk</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
 
 # -----------------------------
 # Header
@@ -475,6 +576,7 @@ col_left, col_right = st.columns([2, 1], gap="large")
 
 with col_left:
     st.markdown("<div class=\"panel\"><div class=\"panel-title\">Satellite Map (No Token)</div>", unsafe_allow_html=True)
+<<<<<<< HEAD
     st.pydeck_chart(
         pdk.Deck(
             layers=layers,
@@ -486,6 +588,58 @@ with col_left:
     st.caption("Satellite tiles powered by Esri World Imagery (no token required).")
     st.markdown("</div>", unsafe_allow_html=True)
 
+=======
+    satellite_layer = pdk.Layer(
+        "TileLayer",
+        data="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        min_zoom=0,
+        max_zoom=19,
+        tile_size=256,
+    )
+    geo_layer = pdk.Layer(
+        "GeoJsonLayer",
+        result.landcover_geojson,
+        pickable=True,
+        opacity=0.6,
+        stroked=True,
+        filled=True,
+        get_fill_color="properties.color",
+        get_line_color=[240, 240, 240],
+        line_width_min_pixels=1,
+    )
+    protected_layer = pdk.Layer(
+        "GeoJsonLayer",
+        result.protected_geojson,
+        pickable=True,
+        opacity=0.5,
+        stroked=True,
+        filled=True,
+        get_fill_color="properties.color",
+        get_line_color=[86, 180, 255],
+        line_width_min_pixels=2,
+    )
+
+    view_state = pdk.ViewState(
+        latitude=focus_center[0],
+        longitude=focus_center[1],
+        zoom=base_config["zoom"],
+        pitch=30,
+    )
+
+    layers = [satellite_layer, geo_layer, protected_layer] if show_protected else [satellite_layer, geo_layer]
+
+    st.pydeck_chart(
+        pdk.Deck(
+            layers=layers,
+            initial_view_state=view_state,
+            map_style=None,
+        )
+    )
+    st.caption("Tip: Use Custom region to set the focus with lat/lon.")
+    st.caption("Satellite tiles powered by Esri World Imagery (no token required).")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
     st.markdown("<div class=\"panel\"><div class=\"panel-title\">Deforestation Trend</div>", unsafe_allow_html=True)
     st.line_chart(result.trend, x="Date", y="Hectares Lost", height=220)
     st.markdown("</div>", unsafe_allow_html=True)
@@ -495,7 +649,11 @@ with col_right:
     for alert in result.alerts:
         confidence = int(alert["confidence"] * 100)
         severity = alert["severity"].lower()
+<<<<<<< HEAD
         severity_class = "alert-high" if severity in ["high", "critical"] else "alert-low" if severity == "moderate" else "alert-medium"
+=======
+        severity_class = "alert-high" if severity in ["high", "critical"] else "alert-medium" if severity == "moderate" else "alert-low"
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
         st.markdown(
             f"<div class=\"alert {severity_class}\">⚠️ {alert['message']}<br/>Severity: {alert['severity']} · Confidence: {confidence}%</div>",
             unsafe_allow_html=True,
@@ -537,9 +695,13 @@ with col_right:
             st.image(BEFORE_IMAGE_URL, use_column_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
         with tab_after:
+<<<<<<< HEAD
             st.markdown("<div class=\"media-img\">", unsafe_allow_html=True)
             st.image(AFTER_IMAGE_URL, use_column_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
+=======
+            st.markdown("<div class=\"image-card\">After</div>", unsafe_allow_html=True)
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
     st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------

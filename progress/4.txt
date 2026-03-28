@@ -1,1 +1,7 @@
+<<<<<<< HEAD
 ﻿Added backend.py with mock analysis outputs and wired app.py to consume backend results.
+=======
+PROGRESS PROOF:
+- Fixed a UX flaw where `ee.Initialize()` crashed the Streamlit app on startup by moving the Earth Engine API call.
+- The initialization `st.error` no longer displays prematurely; it waits for the 'Analyze' button click allowing the user to correctly input their GCP ID natively first.
+>>>>>>> f89a30473ff0144d2c3f0388ed0b78b6dc16fef7
